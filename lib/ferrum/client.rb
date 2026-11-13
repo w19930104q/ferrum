@@ -381,6 +381,7 @@ module Ferrum
       when "No node with given id found",
            "Could not find node with given id",
            "Inspected target navigated or closed",
+           "Node is detached from document",
            "Argument should belong to the same JavaScript world as target object"
         raise NodeNotFoundError, error
       # Context is lost, page is reloading
