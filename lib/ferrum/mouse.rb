@@ -24,6 +24,15 @@ module Ferrum
       @buttons = 0
     end
 
+    # Whether any mouse button is currently held down, e.g. after {#down}
+    # without a matching {#up}.
+    #
+    # @return [Boolean]
+    #
+    def pressed?
+      @buttons.positive?
+    end
+
     #
     # Scroll page by the given amount x, y. Scrolls instantly, even when the
     # page sets `scroll-behavior: smooth`.

@@ -410,6 +410,199 @@ describe Ferrum::Node do
     end
   end
 
+  describe "#drag_to" do
+    before { browser.go_to("/drag_and_drop") }
+
+    it "drops the node on the target with the payload set on dragstart" do
+      browser.at_css("#source").drag_to(browser.at_css("#target"))
+
+      expect(browser.evaluate("window.sourceEvents")).to eq(%w[dragstart dragend])
+      expect(browser.evaluate("window.targetEvents")).to eq(%w[dragover drop])
+      expect(browser.evaluate("window.drops")).to match(
+        [a_hash_including("target" => "target", "payload" => "card-42")]
+      )
+    end
+
+    it "drops on the center of the target's visible area" do
+      browser.at_css("#source").drag_to(browser.at_css("#target"))
+
+      drop = browser.evaluate("window.drops").first
+      rect = browser.evaluate(<<~JS)
+        (() => {
+          const rect = document.getElementById("target").getBoundingClientRect();
+          return [rect.left, rect.top, rect.right, rect.bottom];
+        })()
+      JS
+      expect(drop["x"]).to be_within(2).of((rect[0] + rect[2]) / 2.0)
+      expect(drop["y"]).to be_within(2).of((rect[1] + rect[3]) / 2.0)
+    end
+
+    it "scrolls the source and the target into view" do
+      expect(browser.evaluate("window.scrollY")).to eq(0)
+
+      browser.at_css("#source").drag_to(browser.at_css("#target"))
+
+      expect(browser.evaluate("window.scrollY")).to be > 0
+      expect(browser.evaluate("window.drops").length).to eq(1)
+    end
+
+    it "returns itself" do
+      source = browser.at_css("#source")
+
+      expect(source.drag_to(browser.at_css("#target"))).to equal(source)
+    end
+
+    it "drops on a target in a same-origin nested iframe" do
+      browser.go_to("/drag_frames")
+      innermost = browser.at_css("#frame").frame.at_css("#frame").frame
+
+      browser.at_css("#source").drag_to(innermost.at_css("#target"))
+
+      expect(browser.evaluate("window.sourceEvents")).to eq(%w[dragstart dragend])
+      expect(innermost.evaluate("window.targetEvents")).to eq(%w[dragover drop])
+      expect(innermost.evaluate("window.drops")).to match(
+        [a_hash_including("target" => "target", "payload" => "card-42")]
+      )
+    end
+
+    it "drops at the target's position inside a nested iframe" do
+      browser.go_to("/drag_frames")
+      innermost = browser.at_css("#frame").frame.at_css("#frame").frame
+
+      browser.at_css("#source").drag_to(innermost.at_css("#target"))
+
+      drop = innermost.evaluate("window.drops").first
+      rect = innermost.evaluate(<<~JS)
+        (() => {
+          const rect = document.getElementById("target").getBoundingClientRect();
+          return [rect.left, rect.top, rect.right, rect.bottom];
+        })()
+      JS
+      expect(drop["x"]).to be_within(2).of((rect[0] + rect[2]) / 2.0)
+      expect(drop["y"]).to be_within(2).of((rect[1] + rect[3]) / 2.0)
+    end
+
+    it "drags a node from an iframe to the main document" do
+      browser.go_to("/drag_frames")
+      inner = browser.at_css("#frame").frame
+
+      inner.at_css("#source").drag_to(browser.at_css("#target"))
+
+      expect(inner.evaluate("window.sourceEvents")).to eq(%w[dragstart dragend])
+      expect(browser.evaluate("window.drops")).to match(
+        [a_hash_including("target" => "target", "payload" => "card-42")]
+      )
+    end
+
+    it "waits for the target to be uncovered" do
+      browser.execute(<<~JS)
+        window.coverTarget();
+        setTimeout(() => window.uncoverTarget(), 300);
+      JS
+
+      browser.at_css("#source").drag_to(browser.at_css("#target"), timeout: 5)
+
+      expect(browser.evaluate("window.drops")).to match([a_hash_including("target" => "target")])
+    end
+
+    it "raises DragTimeoutError without dropping on the cover when the target stays covered" do
+      browser.execute("window.coverTarget()")
+
+      expect { browser.at_css("#source").drag_to(browser.at_css("#target"), timeout: 0.5) }
+        .to raise_error(Ferrum::DragTimeoutError, /covered/)
+
+      expect(browser.evaluate("window.drops")).to eq([])
+      expect(browser.evaluate("window.sourceEvents")).to eq(%w[dragstart dragend])
+      expect(browser.mouse.pressed?).to eq(false)
+    end
+
+    it "drags again after a failed drag" do
+      browser.execute("window.coverTarget()")
+      source = browser.at_css("#source")
+      target = browser.at_css("#target")
+      expect { source.drag_to(target, timeout: 0.5) }.to raise_error(Ferrum::DragTimeoutError)
+
+      browser.execute("window.uncoverTarget()")
+      source.drag_to(target)
+
+      expect(browser.evaluate("window.drops")).to match([a_hash_including("target" => "target")])
+    end
+
+    it "rejects the drag before sending input when modifier keys are held" do
+      browser.keyboard.hold(:shift) do
+        expect { browser.at_css("#source").drag_to(browser.at_css("#target")) }
+          .to raise_error(ArgumentError, /modifier/)
+      end
+
+      expect(browser.evaluate("window.sourceEvents")).to eq([])
+      expect(browser.evaluate("window.drops")).to eq([])
+    end
+
+    it "rejects the drag before sending input when a mouse button is pressed" do
+      browser.mouse.move(x: 10, y: 10).down
+
+      begin
+        expect { browser.at_css("#source").drag_to(browser.at_css("#target")) }
+          .to raise_error(ArgumentError, /button/)
+      ensure
+        browser.mouse.up
+      end
+
+      expect(browser.evaluate("window.sourceEvents")).to eq([])
+      expect(browser.evaluate("window.drops")).to eq([])
+    end
+
+    it "rejects a target that belongs to another page" do
+      other = browser.create_page
+
+      begin
+        other.go_to("/drag_and_drop")
+
+        expect { browser.at_css("#source").drag_to(other.at_css("#target")) }
+          .to raise_error(ArgumentError, /another page/)
+      ensure
+        other.close
+      end
+    end
+
+    it "rejects a target that isn't a node" do
+      expect { browser.at_css("#source").drag_to("#target") }
+        .to raise_error(ArgumentError, /Ferrum::Node/)
+    end
+
+    it "raises NodeNotFoundError when the source is removed" do
+      source = browser.at_css("#source")
+      browser.execute("document.getElementById('source').remove()")
+
+      expect { source.drag_to(browser.at_css("#target")) }.to raise_error(Ferrum::NodeNotFoundError)
+    end
+
+    it "raises NodeNotFoundError when the target is removed" do
+      target = browser.at_css("#target")
+      browser.execute("document.getElementById('target').remove()")
+
+      expect { browser.at_css("#source").drag_to(target) }.to raise_error(Ferrum::NodeNotFoundError)
+    end
+
+    it "raises NodeNotFoundError when the page navigates" do
+      source = browser.at_css("#source")
+      target = browser.at_css("#target")
+      browser.go_to("/drag_and_drop")
+
+      expect { source.drag_to(target) }.to raise_error(Ferrum::NodeNotFoundError)
+    end
+
+    it "raises NodeNotFoundError when the target's frame navigates" do
+      browser.go_to("/drag_frames")
+      frame = browser.at_css("#frame").frame
+      target = frame.at_css("#target")
+      frame.evaluate("window.location.reload()")
+      sleep 0.5
+
+      expect { browser.at_css("#source").drag_to(target) }.to raise_error(Ferrum::NodeNotFoundError)
+    end
+  end
+
   describe "#at_xpath" do
     it "searches relatively current node" do
       browser.go_to("/with_js")

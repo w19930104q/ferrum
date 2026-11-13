@@ -1,0 +1,34 @@
+module Ferrum
+  class Node
+    class Drag
+      CHECK_DELAY: ::Float
+
+      MOVE_STEPS: ::Integer
+
+      INIT_DISTANCE: ::Integer
+
+      POINT_SCRIPT: ::String
+
+      @source: Node
+      @target: untyped
+      @timeout: ::Numeric
+      @page: Page
+
+      def initialize: (Node source, untyped target, timeout: ::Numeric?) -> void
+
+      def perform: () -> void
+
+      private
+
+      def validate!: () -> void
+
+      def start_drag: ([::Numeric, ::Numeric] from) -> void
+
+      def await_point: (Node node, ::String role) ?{ (::Numeric, ::Numeric) -> untyped } -> [::Numeric, ::Numeric]
+
+      def cancel: () -> untyped
+
+      def release_button: () -> untyped
+    end
+  end
+end

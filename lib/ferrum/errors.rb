@@ -142,6 +142,22 @@ module Ferrum
     end
   end
 
+  # Raised when a drag and drop doesn't complete in time, e.g. because the
+  # drop target stays covered by another element.
+  class DragTimeoutError < TimeoutError
+    #
+    # Explains what the drag was waiting for when it timed out.
+    #
+    # @return [String]
+    #
+    attr_reader :message
+
+    def initialize(message)
+      @message = message
+      super()
+    end
+  end
+
   # Raised when the browser process doesn't produce a websocket URL within
   # the configured `:process_timeout`.
   class ProcessTimeoutError < Error

@@ -1,6 +1,11 @@
 ## [Unreleased](https://github.com/rubycdp/ferrum/compare/v0.20.1...main) ##
 
 ### Added
+- `node.drag_to(target, timeout:)` drags the node onto another node with real mouse input, scrolling both into
+  view and hitting the target's visible area, also inside same-origin nested iframes. The `DataTransfer` set on
+  `dragstart` reaches the `drop` handlers, a covered source or target is waited on instead of dropped on, up to
+  `timeout`, which raises `DragTimeoutError`
+- `mouse.pressed?` tells whether any mouse button is currently held down
 - `cookies[name, domain:, path:]` picks one of the cookies sharing a name
 - `context.cookies` with every cookie in the context whatever its domain, `browser.cookies` is the default context's
 - `network.emulate(user_agent:, accept_language:, platform:, metadata:)` overrides what the page reports in the request

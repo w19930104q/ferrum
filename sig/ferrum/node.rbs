@@ -51,6 +51,8 @@ module Ferrum
 
     def click: (?mode: ::Symbol, ?keys: ::Array[::Symbol], ?offset: ::Hash[::Symbol, untyped], ?delay: ::Numeric, ?wait: ::Numeric) -> self
 
+    def drag_to: (Node target, ?timeout: ::Numeric?) -> self
+
     def hover: () -> bot
 
     def scroll_into_view: () -> self

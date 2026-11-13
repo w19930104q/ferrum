@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
+    <title>ferrum drag and drop innermost frame</title>
+    <link rel="icon" href="data:,">
+    <style>
+      body { margin: 0; }
+      #source, #target { width: 100px; height: 100px; }
+      #source { background: yellow; }
+      #target { background: navy; }
+    </style>
+  </head>
+  <body>
+    <div id="source" draggable="true"></div>
+    <div id="target"></div>
+    <script>
+      window.sourceEvents = [];
+      window.targetEvents = [];
+      window.drops = [];
+      const source = document.getElementById("source");
+      const target = document.getElementById("target");
+      source.addEventListener("dragstart", event => {
+        event.dataTransfer.setData("text/plain", "card-42");
+        window.sourceEvents.push("dragstart");
+      });
+      source.addEventListener("dragend", () => window.sourceEvents.push("dragend"));
+      target.addEventListener("dragover", event => {
+        event.preventDefault();
+        if (!window.targetEvents.includes("dragover")) window.targetEvents.push("dragover");
+      });
+      target.addEventListener("drop", event => {
+        event.preventDefault();
+        window.targetEvents.push("drop");
+        window.drops.push({
+          target: event.target.id,
+          payload: event.dataTransfer.getData("text/plain"),
+          x: event.clientX,
+          y: event.clientY
+        });
+      });
+    </script>
+  </body>
+</html>

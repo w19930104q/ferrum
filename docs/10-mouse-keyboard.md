@@ -68,6 +68,10 @@ Mouse move to given x and y.
     * :modifiers `Integer` bitfield for key modifiers. See `keyboard.modifiers`.
       If omitted, uses the keys held by `keyboard.hold`, or none outside of it
 
+#### pressed? : `Boolean`
+
+Whether any mouse button is currently held down, e.g. after `down` without a matching `up`.
+
 ## Keyboard
 
 `page.keyboard`

@@ -156,6 +156,31 @@ x, y = page.at_css("a").find_position
 page.mouse.move(x: x, y: y)
 ```
 
+#### drag_to(target, timeout: `Numeric` | `nil`) : `Node`
+
+Drags the node onto another node with real mouse input: moves to the node, presses the left button, moves over the
+target and releases. Both nodes are scrolled into view first, and the drop point is the center of the target's
+visible area, computed in viewport coordinates even when a node sits inside same-origin (nested) iframes. Because
+the drag goes through the browser's input pipeline, an HTML5 `draggable` element fires
+`dragstart`/`dragover`/`drop`/`dragend` and the `DataTransfer` set on `dragstart` reaches the `drop` handlers
+untouched.
+
+When the source or the target is covered by another element, waits up to `timeout` seconds for it to become
+hittable instead of dropping on the cover, and raises `Ferrum::DragTimeoutError` when it stays covered. On any
+failure the drag is canceled by releasing the button outside the viewport, so no `drop` event fires, and only the
+mouse button pressed by this method is released.
+
+* target `Node` the node to drop on, must belong to the same page
+* timeout `Numeric` | `nil` seconds to wait for the source and the target to become hittable, the browser's
+  `:timeout` option by default
+
+Raises `ArgumentError` when the target is on another page, a mouse button is already pressed or modifier keys are
+held, and `Ferrum::NodeNotFoundError` when the source or the target is removed from the DOM or its frame navigates.
+
+```ruby
+page.at_css("#card").drag_to(page.at_css("#approved"))
+```
+
 #### scroll_into_view : `Node`
 
 Scrolls the node into view if it isn't visible yet.

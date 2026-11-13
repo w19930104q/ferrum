@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
+require "ferrum/node/drag"
+
 module Ferrum
   #
   # Represents a DOM node (an element or a text node) found on a {Page} or
   # within a {Frame}. Provides methods to inspect it (`text`, `property`,
-  # `attribute`), interact with it (`click`, `focus`, `type`, `select`) and
-  # search within it (`at_css`, `at_xpath`, `css`, `xpath`).
+  # `attribute`), interact with it (`click`, `focus`, `type`, `select`,
+  # `drag_to`) and search within it (`at_css`, `at_xpath`, `css`, `xpath`).
   #
   # @note Node identity is tied to the target it was found on; a `Node`
   #   fetched before a navigation cannot be used afterwards.
@@ -279,6 +281,53 @@ module Ferrum
         page.mouse.click(x:, y:, modifiers:, delay:, wait:)
       end
 
+      self
+    end
+
+    #
+    # Drags the node onto another node with real mouse input: moves to the
+    # node, presses the left button, moves over the target and releases.
+    # Both nodes are scrolled into view first, and the drop point is the
+    # center of the target's visible area, computed in viewport coordinates
+    # even when a node sits inside same-origin (nested) iframes. Because the
+    # drag goes through the browser's input pipeline, an HTML5 `draggable`
+    # element fires `dragstart`/`dragover`/`drop`/`dragend` and the
+    # `DataTransfer` set on `dragstart` reaches the `drop` handlers
+    # untouched.
+    #
+    # When the source or the target is covered by another element, waits up
+    # to `timeout` seconds for it to become hittable instead of dropping on
+    # the cover. On any failure the drag is canceled by releasing the button
+    # outside the viewport, so no `drop` event fires, and only the mouse
+    # button pressed by this method is released, keys held before the drag
+    # are left alone.
+    #
+    # @param [Node] target
+    #   The node to drop on. Must belong to the same page.
+    #
+    # @param [Numeric, nil] timeout
+    #   Seconds to wait for the source and the target to become hittable,
+    #   defaults to the browser's `:timeout` option.
+    #
+    # @return [self]
+    #
+    # @raise [ArgumentError]
+    #   When the target is on another page, a mouse button is already
+    #   pressed or modifier keys are held.
+    #
+    # @raise [NodeNotFoundError]
+    #   When the source or the target is removed from the DOM or its frame
+    #   navigates.
+    #
+    # @raise [DragTimeoutError]
+    #   When the source or the target stays invisible or covered past
+    #   `timeout`.
+    #
+    # @example
+    #   page.at_css("#card").drag_to(page.at_css("#approved"))
+    #
+    def drag_to(target, timeout: nil)
+      Drag.new(self, target, timeout: timeout).perform
       self
     end
 

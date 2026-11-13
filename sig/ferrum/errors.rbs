@@ -59,6 +59,14 @@ module Ferrum
     def message: () -> "Timed out waiting for evaluated script to return a value"
   end
 
+  class DragTimeoutError < TimeoutError
+    @message: String
+
+    def initialize: (String message) -> void
+
+    def message: () -> String
+  end
+
   class ProcessTimeoutError < Error
     attr_reader output: String
 

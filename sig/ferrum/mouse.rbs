@@ -11,6 +11,8 @@ module Ferrum
 
     def initialize: (Page page) -> void
 
+    def pressed?: () -> bool
+
     def scroll_by: (::Numeric x, ::Numeric y) -> self
 
     def scroll_to: (::Numeric x, ::Numeric y) -> self

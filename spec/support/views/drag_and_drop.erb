@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
+    <title>ferrum drag and drop</title>
+    <link rel="icon" href="data:,">
+    <style>
+      body { margin: 0; }
+      .spacer { height: 700px; }
+      .gap { height: 300px; }
+      #source { width: 100px; height: 100px; background: red; }
+      #target { width: 150px; height: 150px; background: blue; }
+      #overlay { position: absolute; width: 150px; height: 150px; background: green; display: none; z-index: 10; }
+    </style>
+  </head>
+  <body>
+    <div class="spacer"></div>
+    <div id="source" draggable="true"></div>
+    <div class="gap"></div>
+    <div id="target"></div>
+    <div id="overlay"></div>
+    <div class="spacer"></div>
+    <script>
+      window.sourceEvents = [];
+      window.targetEvents = [];
+      window.drops = [];
+      const source = document.getElementById("source");
+      const target = document.getElementById("target");
+      const overlay = document.getElementById("overlay");
+      source.addEventListener("dragstart", event => {
+        event.dataTransfer.setData("text/plain", "card-42");
+        window.sourceEvents.push("dragstart");
+      });
+      source.addEventListener("dragend", () => window.sourceEvents.push("dragend"));
+      target.addEventListener("dragover", event => {
+        event.preventDefault();
+        if (!window.targetEvents.includes("dragover")) window.targetEvents.push("dragover");
+      });
+      target.addEventListener("drop", event => {
+        event.preventDefault();
+        window.targetEvents.push("drop");
+        window.drops.push({
+          target: event.target.id,
+          payload: event.dataTransfer.getData("text/plain"),
+          x: event.clientX,
+          y: event.clientY
+        });
+      });
+      overlay.addEventListener("dragover", event => event.preventDefault());
+      overlay.addEventListener("drop", event => {
+        event.preventDefault();
+        window.drops.push({ target: "overlay" });
+      });
+      window.coverTarget = () => {
+        const rect = target.getBoundingClientRect();
+        overlay.style.display = "block";
+        overlay.style.left = `${rect.left}px`;
+        overlay.style.top = `${rect.top + window.scrollY}px`;
+      };
+      window.uncoverTarget = () => { overlay.style.display = "none"; };
+    </script>
+  </body>
+</html>
